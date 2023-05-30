@@ -119,7 +119,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
         permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {result ->
             if (result) {
-                if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) // izin verildiyse ==
+                if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)  // izin verildiyse ==
                 // izin verildi
                 locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0f,locationListener)
                 val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
