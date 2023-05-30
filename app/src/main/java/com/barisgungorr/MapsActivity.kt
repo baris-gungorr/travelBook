@@ -8,6 +8,7 @@ import android.location.LocationListener
 import android.location.LocationManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,13 +22,13 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import com.barisgungorr.travelbook.databinding.ActivityMaps4Binding
+import com.barisgungorr.travelbook.databinding.ActivityMapsBinding
 import com.google.android.material.snackbar.Snackbar
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClickListener {  // burada uzun tıkladığımızda ne olacağını söylediğimiz listener'ı ekledik
 
     private lateinit var mMap: GoogleMap
-    private lateinit var binding: ActivityMaps4Binding
+    private lateinit var binding: ActivityMapsBinding
     private lateinit var locationManager : LocationManager // konum almak için yapı 1 -konum yöneticisi
     private lateinit var locationListener: LocationListener // konum alma yapı 2  - konum dinleyicisi
     private lateinit var permissionLauncher : ActivityResultLauncher<String> // izin işlemleri -> kullanmasak bile bir register işlemi yapmamız gerekiyor
@@ -41,7 +42,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
         super.onCreate(savedInstanceState)
         registerLauncher()
 
-        binding = ActivityMaps4Binding.inflate(layoutInflater)
+        binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -143,6 +144,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
         selectedLatidude = p0.latitude  // kayıt için enlem ve boylamı ayrı değişkenlere atadık
         selectedLongitude = p0.longitude
+
+    }
+    fun save(view:View) {
+
+    }
+    fun deleteButton(view: View) {
+
 
     }
 
