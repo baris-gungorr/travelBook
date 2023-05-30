@@ -119,16 +119,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
         permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {result ->
             if (result) {
-                if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)  // izin verildiyse ==
-                // izin verildi
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0f,locationListener)
-                val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                if (lastLocation != null) {
-                    val lastUserLocation = LatLng(lastLocation.latitude,lastLocation.longitude)
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation,15f))
+                if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    // izin verildi
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0f,locationListener)
+                    val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                    if (lastLocation != null) {
+                        val lastUserLocation = LatLng(lastLocation.latitude,lastLocation.longitude)
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation,15f))
+                    }
+                    mMap.isMyLocationEnabled = true // konumu etkinleştirdik mi                                                                                          // izin verildiyse ==
                 }
-                mMap.isMyLocationEnabled = true // konumu etkinleştirdik mi
-
 
             }else{
                 //reddedildi
@@ -147,6 +147,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
     }
     fun save(view:View) {
+
 
     }
     fun deleteButton(view: View) {
