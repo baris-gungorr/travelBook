@@ -1,6 +1,7 @@
-package com.barisgungorr
+package com.barisgungorr.view
 
 import android.Manifest
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
@@ -14,6 +15,10 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.room.Room
+import com.barisgungorr.model.Place
+import com.barisgungorr.roomdb.PlaceDao
+import com.barisgungorr.roomdb.PlaceDatabase
 import com.barisgungorr.travelbook.R
 
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -24,6 +29,9 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.barisgungorr.travelbook.databinding.ActivityMapsBinding
 import com.google.android.material.snackbar.Snackbar
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
+
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClickListener {  // burada uzun tıkladığımızda ne olacağını söylediğimiz listener'ı ekledik
 
@@ -36,6 +44,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
     private var trackBoolean : Boolean? = false // takip bulyını
     private var selectedLatidude : Double? = null
     private  var selectedLongitude : Double? = null
+    private lateinit var db : PlaceDatabase
+    private lateinit var placeDao : PlaceDao
+    val compositeDisposable = CompositeDisposable()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,6 +63,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
         sharedPreferences = this.getSharedPreferences("com.barisgungorr", MODE_PRIVATE)  // init işlemi
         selectedLatidude = 0.0
         selectedLongitude = 0.0
+
+        db = Room.databaseBuilder(applicationContext,PlaceDatabase::class.java,"Places").build()
+        placeDao = db.placeDao()
 
     }
 
@@ -76,7 +90,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
                 if (trackBoolean == false!!) {
                     val userLocation = LatLng(location.latitude,location.longitude)
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation,10f))
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation,15f))
                     sharedPreferences.edit().putBoolean("trackBoolean",true).apply() // tekrar çağrılıyor ve değeri true yani bir konum alındıysa tekrar çağrılmıyor
                 }
             }
@@ -147,12 +161,32 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
     }
     fun save(view:View) {
+    if (selectedLongitude != null && selectedLatidude != null) {
 
+        val place = Place(binding.placeText.text.toString(),selectedLatidude!!,selectedLongitude!!)
+        compositeDisposable.add(
+            placeDao.insert(place)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::handleResponse)
+        )
 
+    }
+
+    }
+    private fun handleResponse() {
+        val intent = Intent(this,MainActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        startActivity(intent)
     }
     fun deleteButton(view: View) {
 
 
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        compositeDisposable.clear()  // hafızada çok fazla coll tutmaması için çöp torbası mantığı ile
     }
 
 }

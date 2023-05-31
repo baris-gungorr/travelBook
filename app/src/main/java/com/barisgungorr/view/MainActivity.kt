@@ -1,11 +1,11 @@
-package com.barisgungorr.travelbook
+package com.barisgungorr.view
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
-import com.barisgungorr.MapsActivity
+import com.barisgungorr.travelbook.R
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,7 +19,7 @@ class MainActivity : AppCompatActivity() {
     }
     override fun onOptionsItemSelected(item: MenuItem): Boolean { // menüden eleman seçilirse ne olacak
         if (item.itemId == R.id.add_place) {
-            val intent = Intent(this,MapsActivity::class.java)
+            val intent = Intent(this, MapsActivity::class.java)
             startActivity(intent)
         }
         return super.onOptionsItemSelected(item)
