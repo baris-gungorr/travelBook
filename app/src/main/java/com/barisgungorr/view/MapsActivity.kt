@@ -48,6 +48,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
     private lateinit var db : PlaceDatabase
     private lateinit var placeDao : PlaceDao
     val compositeDisposable = CompositeDisposable()
+    var placeFromMain : Place? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,6 +57,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
@@ -69,12 +71,83 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
             .build()
 
         placeDao = db.placeDao()
+        binding.button.isEnabled = false
 
     }
 
     override fun onMapReady(googleMap: GoogleMap) { // harita hazır olduğunda çağrılan fonksiyon
         mMap = googleMap
         mMap.setOnMapClickListener(this)  // aktivite uygulayacak demeliyiz uzun tıklanınca ne olacak  <harita-listener> bağlantısı için gerekiyor
+        val intent = intent
+        val info = intent.getStringExtra("info")
+
+        if (info == "new") {
+            binding.button.visibility = View.VISIBLE
+            binding.deleteButton.visibility = View.GONE
+
+            locationManager = this.getSystemService(LOCATION_SERVICE) as LocationManager  // init ediyoruz konum yöneticisini (as diyerek casting ediyoruz bundan eminim)
+
+            locationListener = object  : LocationListener{  // init ediyoruz konum lisınırını
+                override fun onLocationChanged(location: Location) {
+                    trackBoolean = sharedPreferences.getBoolean("trackBoolean",false)  //daha önce kaydedilmiş bir veri var mı kontrol etmek için kullanıyoruz yok ise
+
+                    if (trackBoolean == false) {
+                        val userLocation = LatLng(location.latitude,location.longitude)  // location'u lat long'a çevirme
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation,10f))
+                        sharedPreferences.edit().putBoolean("trackBoolean",true).apply() // tekrar çağrılıyor ve değeri true yani bir konum alındıysa tekrar çağrılmıyor
+                    }
+                }
+            }
+            if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) { // önceki vers.Uyumluluğu için contexCompat
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.ACCESS_FINE_LOCATION)){
+                    Snackbar.make(binding.root,"İzne ihtiyacım var ",Snackbar.LENGTH_INDEFINITE).setAction("İzne ihtiyacım var !") {
+                        //izin iste
+                        permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+
+                    }.show()
+                }else{
+                    // izin iste
+                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+
+                }
+
+            }else {  // izinin olduğu kısım
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,10000,0f,locationListener) // lokasyon aldığımız kısım cihazı yorar güncellene
+                //saniyede 1 için 1000 , mesafe için distance 10metre
+                val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER) //son bilinen konumu almak
+                if (lastLocation != null){
+                    val lastUserLocation = LatLng(lastLocation.latitude,lastLocation.longitude) // konumun daha önce alınmama ihtimaline karşı bir kontrol yaptık
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation,10f))
+                }
+                mMap.isMyLocationEnabled = true // konumu etkinleştirdik mi
+
+            }
+            //LocationManager  -> location ile ilgili tüm işlemleri ele alıyor
+            //LocationListener  -> konumda bir değişiklik olursa haber ver
+
+
+            //Add a marker in Sydney and move the camera
+            //val eifel = LatLng(48.85391,2.2913515)
+            //mMap.addMarker(MarkerOptions().position(eifel).title("Eiffel Tower")) //mark ekleme
+            //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(eifel,10f))
+
+
+        }else {
+            mMap.clear()
+            placeFromMain = intent.getSerializableExtra("selectedPlace") as? Place
+            placeFromMain?.let {
+                val latlng = LatLng(it.latitude,it.longitude)
+                mMap.addMarker(MarkerOptions().position(latlng).title(it.name))
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latlng,15f))
+
+                binding.placeText.setText(it.name)
+                binding.button.visibility = View.GONE
+                binding.deleteButton.visibility = View.VISIBLE
+
+
+            }
+        }
+
 
         // latitude,longitude -> enlem ve boylam
         //val sydney = LatLng(-34,0,151.0)  burayı eifel vs istediğimiz yeri ekleyebiliriz
@@ -84,51 +157,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
         //** KULLANICI KONUM İŞLEMLERİ
 
-        locationManager = this.getSystemService(LOCATION_SERVICE) as LocationManager  // init ediyoruz konum yöneticisini (as diyerek casting ediyoruz bundan eminim)
-
-        locationListener = object  : LocationListener{  // init ediyoruz konum lisınırını
-            override fun onLocationChanged(location: Location) {
-                trackBoolean = sharedPreferences.getBoolean("trackBoolean",false)  //daha önce kaydedilmiş bir veri var mı kontrol etmek için kullanıyoruz yok ise
-
-                if (trackBoolean == false) {
-                    val userLocation = LatLng(location.latitude,location.longitude)  // location'u lat long'a çevirme
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation,10f))
-                    sharedPreferences.edit().putBoolean("trackBoolean",true).apply() // tekrar çağrılıyor ve değeri true yani bir konum alındıysa tekrar çağrılmıyor
-                }
-            }
-        }
-        if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) { // önceki vers.Uyumluluğu için contexCompat
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.ACCESS_FINE_LOCATION)){
-                Snackbar.make(binding.root,"İzne ihtiyacım var ",Snackbar.LENGTH_INDEFINITE).setAction("İzne ihtiyacım var !") {
-                    //izin iste
-                    permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-
-                }.show()
-            }else{
-            // izin iste
-                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-
-            }
-
-        }else {  // izinin olduğu kısım
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,10000,0f,locationListener) // lokasyon aldığımız kısım cihazı yorar güncellene
-                                                                                                                            //saniyede 1 için 1000 , mesafe için distance 10metre
-            val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER) //son bilinen konumu almak
-            if (lastLocation != null){
-                val lastUserLocation = LatLng(lastLocation.latitude,lastLocation.longitude) // konumun daha önce alınmama ihtimaline karşı bir kontrol yaptık
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation,10f))
-            }
-            mMap.isMyLocationEnabled = true // konumu etkinleştirdik mi
-
-        }
-            //LocationManager  -> location ile ilgili tüm işlemleri ele alıyor
-            //LocationListener  -> konumda bir değişiklik olursa haber ver
-
-
-    //Add a marker in Sydney and move the camera
-    //val eifel = LatLng(48.85391,2.2913515)
-    //mMap.addMarker(MarkerOptions().position(eifel).title("Eiffel Tower")) //mark ekleme
-    //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(eifel,10f))
 
 
     }
@@ -161,6 +189,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
         selectedLatidude = p0.latitude  // kayıt için enlem ve boylamı ayrı değişkenlere atadık
         selectedLongitude = p0.longitude
+        binding.button.isEnabled = true
 
     }
     fun save(view:View) {
@@ -176,7 +205,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
             placeDao.insert(place)
 
-
     }
 
     }
@@ -186,6 +214,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
         startActivity(intent)
     }
     fun delete(view: View) {
+        placeFromMain?.let {
+
+            compositeDisposable.add(
+                placeDao.delete(it)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe()
+            )
+        }
 
 
     }
