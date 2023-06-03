@@ -213,15 +213,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         startActivity(intent)
     }
-    fun delete(view: View) {
+    fun delete(view: View?) {
         placeFromMain?.let {
+            compositeDisposable.add(placeDao.delete(it)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::handleResponse))
 
-            compositeDisposable.add(
-                placeDao.delete(it)
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe()
-            )
         }
 
 
