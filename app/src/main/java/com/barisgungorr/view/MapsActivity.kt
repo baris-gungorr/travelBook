@@ -7,12 +7,12 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.room.Room
@@ -20,15 +20,15 @@ import com.barisgungorr.model.Place
 import com.barisgungorr.roomdb.PlaceDao
 import com.barisgungorr.roomdb.PlaceDatabase
 import com.barisgungorr.travelbook.R
-
+import com.barisgungorr.travelbook.databinding.ActivityMapsBinding
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import com.barisgungorr.travelbook.databinding.ActivityMapsBinding
 import com.google.android.material.snackbar.Snackbar
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 
@@ -44,6 +44,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
     private var trackBoolean : Boolean? = false // takip bulyını
     private var selectedLatidude : Double? = null
     private  var selectedLongitude : Double? = null
+
     private lateinit var db : PlaceDatabase
     private lateinit var placeDao : PlaceDao
     val compositeDisposable = CompositeDisposable()
@@ -57,14 +58,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
         setContentView(binding.root)
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        val mapFragment = supportFragmentManager
-            .findFragmentById(R.id.map) as SupportMapFragment
+        val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
-        sharedPreferences = this.getSharedPreferences("com.barisgungorr", MODE_PRIVATE)  // init işlemi
+        sharedPreferences = this.getSharedPreferences("com.barisgungorr.view", MODE_PRIVATE)  // init işlemi
         selectedLatidude = 0.0
         selectedLongitude = 0.0
 
-        db = Room.databaseBuilder(applicationContext,PlaceDatabase::class.java,"Places").build()
+        db = Room.databaseBuilder(applicationContext,PlaceDatabase::class.java,"Places")
+          //  .allowMainThreadQueries()  ->MainThread içerisinde yap işlemleri diyoruz
+            .build()
+
         placeDao = db.placeDao()
 
     }
@@ -75,7 +78,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
         // latitude,longitude -> enlem ve boylam
         //val sydney = LatLng(-34,0,151.0)  burayı eifel vs istediğimiz yeri ekleyebiliriz
-
         //mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney)) -> bana bir pozisyon ver diyor kamera açıldığında beni buradan başlat diyoruz
         //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney,10f)) -> zoom' işlemi yaparak istediğimiz yere daha yakın bir başlangıç yaptırabiliriz
         //mMap.addMarker(MarkerOptions().position(sydney).title("Marker in sydney"))
@@ -88,9 +90,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
             override fun onLocationChanged(location: Location) {
                 trackBoolean = sharedPreferences.getBoolean("trackBoolean",false)  //daha önce kaydedilmiş bir veri var mı kontrol etmek için kullanıyoruz yok ise
 
-                if (trackBoolean == false!!) {
-                    val userLocation = LatLng(location.latitude,location.longitude)
-                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation,15f))
+                if (trackBoolean == false) {
+                    val userLocation = LatLng(location.latitude,location.longitude)  // location'u lat long'a çevirme
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLocation,10f))
                     sharedPreferences.edit().putBoolean("trackBoolean",true).apply() // tekrar çağrılıyor ve değeri true yani bir konum alındıysa tekrar çağrılmıyor
                 }
             }
@@ -108,10 +110,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
             }
 
-        }else {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0f,locationListener) // lokasyon aldığımız kısım cihazı yorar güncellene
+        }else {  // izinin olduğu kısım
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,10000,0f,locationListener) // lokasyon aldığımız kısım cihazı yorar güncellene
                                                                                                                             //saniyede 1 için 1000 , mesafe için distance 10metre
-            val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER) //son bilinen konum
+            val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER) //son bilinen konumu almak
             if (lastLocation != null){
                 val lastUserLocation = LatLng(lastLocation.latitude,lastLocation.longitude) // konumun daha önce alınmama ihtimaline karşı bir kontrol yaptık
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation,10f))
@@ -119,7 +121,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
             mMap.isMyLocationEnabled = true // konumu etkinleştirdik mi
 
         }
-
+            //LocationManager  -> location ile ilgili tüm işlemleri ele alıyor
+            //LocationListener  -> konumda bir değişiklik olursa haber ver
 
 
     //Add a marker in Sydney and move the camera
@@ -139,7 +142,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
                     val lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                     if (lastLocation != null) {
                         val lastUserLocation = LatLng(lastLocation.latitude,lastLocation.longitude)
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation,15f))
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(lastUserLocation,10f))
                     }
                     mMap.isMyLocationEnabled = true // konumu etkinleştirdik mi                                                                                          // izin verildiyse ==
                 }
@@ -152,7 +155,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
 
     }
 
-    override fun onMapClick(p0: LatLng) {  // uzun tıkladığımızda ne olacak fonksiyonu
+    override fun onMapClick(p0: LatLng) {  // uzun tıkladığımızda ne olacak fonksiyon
         mMap.clear() // eski markerları silmek için kullanıyoruz
         mMap.addMarker(MarkerOptions().position(p0))  // marker ekleme
 
@@ -171,6 +174,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
                 .subscribe(this::handleResponse)
         )
 
+            placeDao.insert(place)
+
+
     }
 
     }
@@ -179,7 +185,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,GoogleMap.OnMapClic
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         startActivity(intent)
     }
-    fun deleteButton(view: View) {
+    fun delete(view: View) {
 
 
     }

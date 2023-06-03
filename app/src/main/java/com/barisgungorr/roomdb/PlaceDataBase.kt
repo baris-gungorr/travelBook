@@ -8,7 +8,3 @@ import com.barisgungorr.model.Place
 abstract class PlaceDatabase : RoomDatabase() {
     abstract fun placeDao(): PlaceDao
 }
-class PlaceDataBase {
-
-
-}

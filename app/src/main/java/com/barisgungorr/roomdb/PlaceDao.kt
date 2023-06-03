@@ -8,7 +8,7 @@ import com.barisgungorr.model.Place
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 
-@Dao  // veri erişim objesi
+@Dao  // veri erişim objesi(dataAccesObject)
 interface PlaceDao {
 
   @Query("SELECT*FROM Place")
